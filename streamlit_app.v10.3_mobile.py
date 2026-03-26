@@ -1,12 +1,15 @@
 # =====================================================
-# CDEWS-IAFS v10.3 Mobile FINAL
+# CDEWS-IAFS v10.3 Mobile — Lightweight Reasoning Engine
 # Dr. Elhabib Kherroubi — March 2026
 # =====================================================
 
+import streamlit as st
 import numpy as np
 import re
 import math
 from collections import Counter
+
+st.set_page_config(page_title="CDEWS-IAFS v10.3 Mobile", layout="wide", page_icon="📱")
 
 # =====================================================
 # CONFIG
@@ -28,7 +31,7 @@ DOMAIN_RISK = {
 }
 
 # =====================================================
-# MEDICAL LAYER (MRL v2.1 FINAL)
+# MEDICAL LAYER (MRL v2.1)
 # =====================================================
 
 SYMPTOMS = ["ألم","حمى","حرارة","قيء","غثيان","صداع","تعب","ضعف","pain","fever","nausea"]
@@ -37,7 +40,6 @@ PROCEDURES = ["استئصال","جراحة","عملية","تثبيت","علاج"
 
 def get_medical_confidence(text):
     t = text.lower()
-    
     has_s = any(w in t for w in SYMPTOMS)
     has_c = any(w in t for w in CONDITIONS)
     has_p = any(w in t for w in PROCEDURES)
@@ -50,7 +52,6 @@ def get_medical_confidence(text):
         status = "MISSING_DIAGNOSIS"
     else:
         status = "UNCERTAIN"
-        
     return score, status
 
 # =====================================================
@@ -61,12 +62,11 @@ def tokenize(text):
     return re.findall(r'[\u0600-\u06FF\w]+', text.lower())
 
 def split_sentences(text):
+    # حماية الاختصارات والأرقام العشرية
     text = re.sub(r'(Dr|Mr|Mrs|Prof)\.', r'\1PROTECT', text)
     text = re.sub(r'(\d+)\.(\d+)', r'\1DECIMAL\2', text)
-    
     sentences = re.split(r'[.!?؟]\s+', text)
     sentences = [s.replace('PROTECT','.').replace('DECIMAL','.') for s in sentences]
-    
     return [s.strip() for s in sentences if len(s.strip()) > 6]
 
 def compute_entropy(text):
@@ -76,7 +76,6 @@ def compute_entropy(text):
     
     freq = Counter(words)
     total = len(words)
-    
     h = 0
     for c in freq.values():
         p = c / total
@@ -85,12 +84,11 @@ def compute_entropy(text):
     max_h = math.log(len(freq))
     H = min(1.0, h / max_h) if max_h > 0 else 0
     
-    # Mobile correction
+    # تخفيف للنصوص القصيرة
     if len(words) < 10:
         H *= 0.55
     elif len(words) < 20:
         H *= 0.75
-        
     return H
 
 def hybrid_drift(s1, s2):
@@ -102,27 +100,20 @@ def hybrid_drift(s1, s2):
     sim = len(w1 & w2) / len(w1 | w2)
     drift = 1 - sim
     
-    # length correction
+    # تصحيح الطول
     l1, l2 = len(w1), len(w2)
-    ratio = min(l1, l2) / max(l1, l2)
+    ratio = min(l1, l2) / max(l1, l2) if max(l1, l2) > 0 else 1
     if ratio < 0.5:
         drift = min(1.0, drift * 1.2)
-    
     return drift, sim
-
-# =====================================================
-# EXPECTATION ENGINE (NEW)
-# =====================================================
 
 def estimate_expected(s):
     s = s.lower()
-    
     if any(w in s for w in ["لذلك","بالتالي","وعليه","thus","therefore"]):
         return 0.85
     elif any(w in s for w in ["قد","محتمل","ربما","maybe","possible"]):
         return 0.45
-    else:
-        return 0.60
+    return 0.60
 
 # =====================================================
 # MAIN ENGINE
@@ -145,18 +136,15 @@ def analyze_mobile(text, domain="General"):
         
         drift, sim = hybrid_drift(s1, s2)
         expected = estimate_expected(s2)
-        
         ctl = min(1.0, abs(expected - sim) * risk)
         
-        # --- MRL intervention (context-aware) ---
+        # MRL intervention
         if domain == "Medical":
             m_conf, m_status = get_medical_confidence(accumulated + " " + s2)
-            
             if m_status == "VALID_FLOW":
                 ctl *= 0.45
                 H *= 0.7
                 drift *= 0.75
-                
             elif m_status == "MISSING_DIAGNOSIS":
                 ctl *= 1.25
         
@@ -164,15 +152,12 @@ def analyze_mobile(text, domain="General"):
         sims.append(sim)
         tensions.append(ctl)
     
-    D = np.mean(drifts)
-    SC = np.mean(sims)
-    
+    D = np.mean(drifts) if drifts else 0
+    SC = np.mean(sims) if sims else 0
     C_base = math.exp(-(ALPHA*H + BETA*D + GAMMA*(1-SC)))
-    
-    # Royal CTL p90
     CTL = np.percentile(tensions, 90) if tensions else 0
     
-    # Stability Layer (improved)
+    # Stability Layer
     if len(drifts) > 1:
         jumps = [abs(drifts[i]-drifts[i-1]) for i in range(1,len(drifts))]
         stability = (np.std(drifts) + np.mean(jumps)) * 0.15
@@ -181,10 +166,9 @@ def analyze_mobile(text, domain="General"):
     
     FINAL = C_base * (1 - CTL) - stability
     
-    # --- MRL integration ---
+    # MRL integration
     if domain == "Medical":
         m_conf, m_status = get_medical_confidence(text)
-        
         if m_status == "VALID_FLOW":
             FINAL = FINAL * 0.75 + m_conf * 0.25
         elif m_status == "MISSING_DIAGNOSIS":
@@ -192,7 +176,6 @@ def analyze_mobile(text, domain="General"):
     
     FINAL = max(0, min(1, FINAL))
     
-    # Status
     if FINAL >= SAFE_THRESHOLD:
         status = "STABLE"
     elif FINAL >= DRIFT_THRESHOLD:
@@ -211,14 +194,60 @@ def analyze_mobile(text, domain="General"):
     }
 
 # =====================================================
-# QUICK TEST
+# STREAMLIT UI
 # =====================================================
 
-if __name__ == "__main__":
-    text = "ارتفاع الحرارة + ألم في الربع السفلي الأيمن. التهاب الزائدة. نوصي باستئصال فوري."
-    
-    res = analyze_mobile(text, "Medical")
-    
-    print("CDEWS v10.3 Mobile FINAL")
-    print(res)
+st.title("📱 CDEWS-IAFS v10.3 Mobile")
+st.caption("Lightweight Reasoning Stability Engine | Dr. Elhabib Kherroubi")
 
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    text_input = st.text_area(
+        "📝 Enter text:", 
+        height=150, 
+        placeholder="Example: Fever + pain → appendicitis → surgery"
+    )
+
+with col2:
+    domain = st.selectbox("🌍 Domain:", list(DOMAIN_RISK.keys()))
+    st.markdown(f"Risk multiplier: **×{DOMAIN_RISK[domain]}**")
+
+if st.button("🚀 Analyze", use_container_width=True, type="primary"):
+    if text_input:
+        with st.spinner("Analyzing reasoning stability..."):
+            result = analyze_mobile(text_input, domain)
+        
+        if result:
+            st.divider()
+            
+            # Dashboard
+            a, b = st.columns(2)
+            a.metric("Final Score", f"{result['score']:.4f}")
+            b.metric("Status", result['status'])
+            
+            if result['score'] >= SAFE_THRESHOLD:
+                st.success("✅ STABLE REASONING — Safe for decision support.")
+            elif result['score'] >= DRIFT_THRESHOLD:
+                st.warning("⚠️ COGNITIVE DRIFT — Human review recommended.")
+            else:
+                st.error("🔴 LOGICAL INSTABILITY — Do not rely without verification.")
+            
+            # Technical details
+            with st.expander("📊 Technical Details"):
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Entropy H(t)", f"{result['entropy']:.4f}")
+                c2.metric("Drift D(t)", f"{result['drift']:.4f}")
+                c3.metric("Coherence SC", f"{result['coherence']:.4f}")
+                
+                d1, d2, d3 = st.columns(3)
+                d1.metric("Royal CTL", f"{result['ctl']:.4f}")
+                d2.metric("Stability Penalty", f"{result['stability']:.4f}")
+                d3.metric("Confidence", f"{(result['coherence'] * result['score']):.4f}")
+        else:
+            st.error("Please enter at least two sentences.")
+    else:
+        st.warning("Please enter text to analyze.")
+
+st.divider()
+st.caption("CDEWS-IAFS v10.3 Mobile | Lightweight · Sovereign · Deterministic")
