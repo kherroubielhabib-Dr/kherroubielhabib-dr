@@ -1,2 +1,7 @@
 streamlit
-numpystreamlit
+numpy
+pandas
+matplotlib
+scipy
+scikit-learn
+sentence-transformers
