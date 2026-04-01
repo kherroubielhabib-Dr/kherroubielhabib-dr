@@ -570,3 +570,4 @@ if run:
         st.error("🔥 **FAILED: HAZARD EXPLOSION --- H(t) exceeded critical threshold**")
     elif cav_status == "FAILED_LEGITIMACY":
         st.error("⚖️ **FAILED: LEGITIMACY
+                 st.error("⚖️ **FAILED: LEGITIMACY FAILURE --- KLL below minimum threshold**")
