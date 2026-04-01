@@ -1,9 +1,8 @@
 """
 ================================================================
-CSLF — Real Engine (Gemini-Powered)
+CSLF --- Real Engine (Gemini-Powered)
 Cognitive Stability & Legitimacy Framework
-Dr. Elhabib Kherroubi — 2026
-
+Dr. Elhabib Kherroubi --- 2026
 Real p(t) from Gemini API via Behavioral Sampling
 ================================================================
 """
@@ -27,6 +26,7 @@ except ImportError:
 # ==========================================
 # CONFIGURATION
 # ==========================================
+
 @dataclass
 class CSLFConfig:
     LAMBDA: float = 8.0
@@ -45,24 +45,24 @@ EVIDENCE_KEYWORDS = [
 ]
 
 DOMAIN_SCENARIOS = {
-    "Financial — Credit Approval": [
+    "Financial --- Credit Approval": [
         "The client has income of $3,000/month and debt of $800. Credit score is 720. Employment is stable for 5 years.",
         "The client has income of $2,500/month and debt of $1,800. Credit score is 520. Employment stability is 0.3.",
         "The client has good financial ratios because income exceeds debt by 200%. Evidence shows consistent repayment history.",
         "Maybe the client could repay, perhaps the score is acceptable, unclear if employment is sufficient.",
         "Unknown factors, random market conditions, unreliable income sources, no evidence provided."
     ],
-    "Medical — Treatment Decision": [
+    "Medical --- Treatment Decision": [
         "Patient presents with elevated enzymes and chest pain. ECG shows ST elevation. Evidence confirms myocardial infarction.",
         "Patient might have some symptoms. Could be cardiac, perhaps gastrointestinal. Unclear diagnosis.",
         "Because the biomarkers are elevated and imaging confirms occlusion, thrombolytic therapy is indicated per protocol.",
         "The symptoms are unusual. Maybe cardiac, maybe not. No clear evidence either way.",
         "Random symptom presentation, unknown cause, unreliable test results, no diagnostic clarity."
     ],
-    "Legal — Contract Validity": [
+    "Legal --- Contract Validity": [
         "Both parties signed the contract. Consideration was exchanged. All legal requirements are satisfied per jurisdiction.",
         "The contract might be valid. Perhaps consideration was exchanged. Unclear if signatures are binding.",
-        "Because all elements of a valid contract are present — offer, acceptance, consideration — enforcement is justified.",
+        "Because all elements of a valid contract are present --- offer, acceptance, consideration --- enforcement is justified.",
         "Maybe the terms are enforceable, perhaps not. Unclear jurisdictional applicability.",
         "Unknown legal status, random enforceability, unreliable jurisdiction, no clear legal basis."
     ],
@@ -81,10 +81,9 @@ def get_real_probs_from_gemini(
 ) -> Tuple[List[float], str, str]:
     """
     Extracts real p(t) from Gemini via behavioral sampling.
-
     Strategy:
     - Send 4 probe prompts designed to elicit different decision dimensions
-    - Measure response consistency → builds real probability distribution
+    - Measure response consistency -> builds real probability distribution
     - Returns: probs (4-dim), token (key word), raw_response
     """
     if not GEMINI_AVAILABLE or not api_key:
@@ -93,8 +92,7 @@ def get_real_probs_from_gemini(
     try:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel("gemini-1.5-flash")
-
-        domain_context = domain.split("—")[0].strip()
+        domain_context = domain.split("---")[0].strip()
 
         # 4 orthogonal probes measuring different epistemic dimensions
         probes = [
@@ -146,28 +144,27 @@ def get_real_probs_from_gemini(
                 raw_responses.append(f"ERROR: {str(e)[:30]}")
 
         # Build probability distribution from scores
-        # High scores = high coherence = concentrated distribution
         avg_score = sum(scores) / len(scores)
         consistency = sum(1 for s in scores if s == scores[0]) / len(scores)
 
         # Map to 4-bin distribution
-        if avg_score >= 0.75:      # Strong positive → concentrated
+        if avg_score >= 0.75:  # Strong positive → concentrated
             probs = [
                 0.50 + avg_score * 0.30,
                 0.20,
                 0.15 - avg_score * 0.05,
                 0.15 - avg_score * 0.05
             ]
-        elif avg_score >= 0.50:    # Mixed → moderate spread
+        elif avg_score >= 0.50:  # Mixed → moderate spread
             probs = [
                 0.40 + avg_score * 0.10,
                 0.25,
                 0.20,
                 0.15
             ]
-        elif avg_score >= 0.25:    # Weak → spread
+        elif avg_score >= 0.25:  # Weak → spread
             probs = [0.35, 0.30, 0.20, 0.15]
-        else:                       # Negative → near-uniform (chaos)
+        else:  # Negative → near-uniform (chaos)
             probs = [0.28, 0.26, 0.24, 0.22]
 
         # Normalize
@@ -203,29 +200,32 @@ def _extract_token(text: str) -> str:
 
 
 def _fallback_probs(text: str) -> List[float]:
-    """Fallback when Gemini unavailable — heuristic from text."""
+    """Fallback when Gemini unavailable --- heuristic from text."""
     evidence_count = sum(1 for kw in EVIDENCE_KEYWORDS if kw in text.lower())
     word_count = len(text.split())
-
     if evidence_count >= 2 and word_count > 15:
-        return [0.80, 0.12, 0.05, 0.03]   # stable
+        return [0.80, 0.12, 0.05, 0.03]  # stable
     elif evidence_count >= 1 or word_count > 8:
-        return [0.55, 0.25, 0.12, 0.08]   # drift
+        return [0.55, 0.25, 0.12, 0.08]  # drift
     else:
-        return [0.28, 0.26, 0.24, 0.22]   # chaos
+        return [0.28, 0.26, 0.24, 0.22]  # chaos
 
 
 # ==========================================
 # UTILITIES
 # ==========================================
+
 def entropy(probs):
     return -sum(p * math.log(p) for p in probs if p > 0)
+
 
 def normalize_entropy(h, n):
     return h / math.log(n) if n > 1 else 0.0
 
+
 def safe_pow(base, exp):
     return math.pow(max(1e-9, base), exp)
+
 
 def sign_cav(cav):
     raw = json.dumps(cav, sort_keys=True).encode()
@@ -235,6 +235,7 @@ def sign_cav(cav):
 # ==========================================
 # STABILITY ENGINE (Lyapunov)
 # ==========================================
+
 class StabilityEngine:
     def __init__(self):
         self.V_prev = 0.0
@@ -251,6 +252,7 @@ class StabilityEngine:
 # ==========================================
 # KLL ENGINE
 # ==========================================
+
 class KLLEngine:
     def __init__(self, config):
         self.config = config
@@ -280,6 +282,7 @@ class KLLEngine:
 # ==========================================
 # CSLF SIGNAL LAYER
 # ==========================================
+
 class CSLFSignal:
     def __init__(self, config=None):
         self.config = config or CONFIG
@@ -289,13 +292,16 @@ class CSLFSignal:
 
     def evaluate(self, probs, token):
         K, dV = self.stability.update(probs)
+
         I = K
         dI = max(0.0, I - self.I_prev)
         self.I_prev = I
 
         H = dI * math.exp(self.config.LAMBDA * dV)
         CTL = (1 - K) + dV
+
         KLL_score, SA, CI, SV, EG = self.kll.update(token, K, dV)
+
         CTL_star = CTL * (1 + self.config.LAMBDA * (1 - KLL_score))
 
         inner = (0.4 * H + 0.3 * dV + 0.3 * (1 - K) +
@@ -313,10 +319,12 @@ class CSLFSignal:
 # ==========================================
 # CAV STATUS
 # ==========================================
+
 def compute_cav_status(K, H, KLL, config):
     flags = []
     if K < 0.01 and KLL < 0.01:
         return "NULL_STATE", ["null_state"]
+
     if H > config.H_EXPLOSION_THRESHOLD:
         flags.append("hazard_explosion")
     if KLL < config.KLL_FAIL_THRESHOLD:
@@ -336,6 +344,7 @@ def compute_cav_status(K, H, KLL, config):
 # ==========================================
 # STREAMLIT UI
 # ==========================================
+
 st.set_page_config(
     page_title="CSLF Real Engine",
     page_icon="🏛️",
@@ -345,16 +354,16 @@ st.set_page_config(
 # Header
 st.markdown("""
 <div style='background:linear-gradient(135deg,#0a0a2e,#1a1a4e);
-            padding:24px 28px; border-radius:8px; margin-bottom:20px;'>
-    <div style='font-size:11px; color:#4fc3f7; letter-spacing:4px; margin-bottom:6px;'>
-        COGNITIVE STABILITY & LEGITIMACY FRAMEWORK
-    </div>
-    <div style='font-size:28px; font-weight:700; color:#fff;'>
-        CSLF <span style='color:#4fc3f7'>Real Engine</span>
-    </div>
-    <div style='font-size:12px; color:#555; margin-top:4px;'>
-        Gemini-Powered Epistemic Admissibility Layer — Dr. Elhabib Kherroubi © 2026
-    </div>
+padding:24px 28px; border-radius:8px; margin-bottom:20px;'>
+<div style='font-size:11px; color:#4fc3f7; letter-spacing:4px; margin-bottom:6px;'>
+COGNITIVE STABILITY & LEGITIMACY FRAMEWORK
+</div>
+<div style='font-size:28px; font-weight:700; color:#fff;'>
+CSLF <span style='color:#4fc3f7'>Real Engine</span>
+</div>
+<div style='font-size:12px; color:#555; margin-top:4px;'>
+Gemini-Powered Epistemic Admissibility Layer --- Dr. Elhabib Kherroubi © 2026
+</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -363,13 +372,11 @@ col_a, col_b, col_c = st.columns(3)
 col_a.info("**CSLF**\nEpistemic Admissibility\n*Does this deserve to exist?*")
 col_b.warning("**IEL**\nEmergency Handling\n*Should we suspend?*")
 col_c.success("**R-AGAM**\nSovereign Commitment\n*Is execution permitted?*")
-
 st.markdown("---")
 
 # ── SIDEBAR ────────────────────────────────────────────────
 with st.sidebar:
     st.header("🔑 Gemini API")
-
     if not GEMINI_AVAILABLE:
         st.error("google-generativeai not installed.\nRun: pip install google-generativeai")
         api_key = ""
@@ -386,8 +393,8 @@ with st.sidebar:
             st.warning("Enter key for real mode\n(runs in simulation without key)")
 
     st.divider()
-    st.header("📋 Scenario")
 
+    st.header("📋 Scenario")
     domain = st.selectbox(
         "Domain",
         list(DOMAIN_SCENARIOS.keys())
@@ -408,6 +415,7 @@ with st.sidebar:
                 st.caption(s[:120] + "..." if len(s) > 120 else s)
 
     st.divider()
+
     st.header("⚙️ Parameters")
     CONFIG.LAMBDA = st.slider("λ (Hazard Amplification)", 4.0, 12.0, 8.0, 0.5)
     CONFIG.DOMAIN_RISK = st.slider("Domain Risk", 0.1, 2.0, 0.70, 0.05)
@@ -415,6 +423,7 @@ with st.sidebar:
 
     st.divider()
     run = st.button("▶ Run CSLF Evaluation", type="primary", use_container_width=True)
+
 
 # ── MAIN ───────────────────────────────────────────────────
 if run:
@@ -428,7 +437,6 @@ if run:
     model = CSLFSignal(CONFIG)
     trace = []
     gemini_logs = []
-
     progress = st.progress(0, text="Initializing CSLF engine...")
 
     for i, reasoning_text in enumerate(steps_text):
@@ -443,7 +451,7 @@ if run:
         # Get real probabilities from Gemini
         probs, token, gemini_raw = get_real_probs_from_gemini(
             api_key, reasoning_text,
-            domain.split("—")[0].strip(), i
+            domain.split("---")[0].strip(), i
         )
 
         gemini_logs.append({
@@ -478,16 +486,19 @@ if run:
     def color_K(val):
         color = "#00e676" if val > 0.5 else "#ff9100" if val > 0.3 else "#ff1744"
         return f"color: {color}"
+
     def color_H(val):
         color = "#ff1744" if val > CONFIG.H_CRIT else "#00e676"
         return f"color: {color}"
+
     def color_KLL(val):
         color = "#00e676" if val >= CONFIG.KLL_FAIL_THRESHOLD else "#ff1744"
         return f"color: {color}"
 
     styled = df.style.applymap(color_K, subset=["K"]) \
-                     .applymap(color_H, subset=["H"]) \
-                     .applymap(color_KLL, subset=["KLL"])
+                 .applymap(color_H, subset=["H"]) \
+                 .applymap(color_KLL, subset=["KLL"])
+
     st.dataframe(styled, use_container_width=True)
 
     # ── PROBABILITY DISTRIBUTIONS ───────────────────────────
@@ -503,7 +514,7 @@ if run:
                 "Entropy": round(entropy(t["probs"]), 4),
             })
         st.dataframe(pd.DataFrame(prob_data), use_container_width=True)
-        st.caption("These are real distributions derived from Gemini's behavioral responses — not simulated values.")
+        st.caption("These are real distributions derived from Gemini's behavioral responses --- not simulated values.")
 
     # ── GEMINI LOGS ─────────────────────────────────────────
     if api_key:
@@ -514,7 +525,7 @@ if run:
 
     # ── CAV VECTOR ──────────────────────────────────────────
     st.markdown("---")
-    st.subheader("📦 CAV Vector — Epistemic Closure")
+    st.subheader("📦 CAV Vector --- Epistemic Closure")
 
     final = trace[-1]
     cav_status, flags = compute_cav_status(
@@ -523,12 +534,39 @@ if run:
 
     # Metrics
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("K — Coherence", f"{final['K']:.4f}",
-              delta="✓" if final['K'] > 0.5 else "⚠",
-              delta_color="normal" if final['K'] > 0.5 else "inverse")
-    m2.metric("H — Hazard", f"{final['H']:.6f}",
-              delta="✓" if final['H'] < CONFIG.H_CRIT else "⚠",
-              delta_color="normal" if final['H'] < CONFIG.H_CRIT else "inverse")
-    m3.metric("KLL — Legitimacy", f"{final['KLL']:.4f}",
-              delta="✓" if final['KLL'] >= CONFIG.KLL_FAIL_THRESHOLD else "⚠",
-              delta_color="normal" if final['KLL'
+
+    m1.metric(
+        "K --- Coherence",
+        f"{final['K']:.4f}",
+        delta="✓" if final['K'] > 0.5 else "⚠",
+        delta_color="normal" if final['K'] > 0.5 else "inverse"
+    )
+
+    m2.metric(
+        "H --- Hazard",
+        f"{final['H']:.6f}",
+        delta="✓" if final['H'] < CONFIG.H_CRIT else "⚠",
+        delta_color="normal" if final['H'] < CONFIG.H_CRIT else "inverse"
+    )
+
+    m3.metric(
+        "KLL --- Legitimacy",
+        f"{final['KLL']:.4f}",
+        delta="✓" if final['KLL'] >= CONFIG.KLL_FAIL_THRESHOLD else "⚠",
+        delta_color="normal" if final['KLL'] >= CONFIG.KLL_FAIL_THRESHOLD else "inverse"
+    )
+
+    m4.metric("CTL* --- Tension", f"{final['CTL*']:.4f}")
+    m5.metric("S_signal --- KSL", f"{final['S_signal']:.4f}")
+
+    st.markdown("")
+
+    # Status
+    if cav_status == "PASSED":
+        st.success("✅ **CAV STATUS: PASSED --- Epistemically Admissible**")
+        st.info("Ready for Sovereign Resolution → R-AGAM")
+    elif cav_status == "NULL_STATE":
+        st.error("∅ **NULL STATE --- Decision does not exist epistemically**")
+    elif cav_status == "FAILED_HAZARD":
+        st.error("🔥 **FAILED: HAZARD EXPLOSION --- H(t) exceeded critical threshold**")
+    elif
