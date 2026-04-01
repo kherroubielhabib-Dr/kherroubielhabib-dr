@@ -145,7 +145,6 @@ def get_real_probs_from_gemini(
 
         # Build probability distribution from scores
         avg_score = sum(scores) / len(scores)
-        consistency = sum(1 for s in scores if s == scores[0]) / len(scores)
 
         # Map to 4-bin distribution
         if avg_score >= 0.75:  # Strong positive → concentrated
@@ -569,4 +568,5 @@ if run:
         st.error("∅ **NULL STATE --- Decision does not exist epistemically**")
     elif cav_status == "FAILED_HAZARD":
         st.error("🔥 **FAILED: HAZARD EXPLOSION --- H(t) exceeded critical threshold**")
-    elif
+    elif cav_status == "FAILED_LEGITIMACY":
+        st.error("⚖️ **FAILED: LEGITIMACY
