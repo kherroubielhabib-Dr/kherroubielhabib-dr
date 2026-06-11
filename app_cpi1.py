@@ -34,6 +34,35 @@ html, body, [class*="css"] {
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
+/* Radio كأزرار أفقية */
+div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+}
+div[role="radiogroup"] label {
+    flex: 1 !important;
+    border: 1.5px solid #D1D5DB !important;
+    border-radius: 8px !important;
+    padding: 10px 6px !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    background: white !important;
+    transition: all 0.15s !important;
+    min-width: 0 !important;
+}
+div[role="radiogroup"] label:has(input:checked) {
+    background: #EFF6FF !important;
+    border-color: #2563EB !important;
+    color: #2563EB !important;
+}
+div[role="radiogroup"] input[type="radio"] {
+    display: none !important;
+}
+
 /* Header */
 .cpi-header {
     background: #0F172A;
@@ -468,33 +497,38 @@ with tab1:
 
     # أزرار التقييم لكل بُعد
     for d in DIMS:
-        col_info, col_btns = st.columns([3, 2])
-        with col_info:
-            st.markdown(f"""
-            <div style="padding:4px 0">
-                <span style="display:inline-block; background:{d['color']}18; color:{d['color']};
-                      font-weight:800; font-size:12px; padding:2px 8px; border-radius:6px; margin-bottom:4px">{d['key']}</span>
-                <span style="font-size:16px; font-weight:700; margin-right:8px; color:{d['color']}">{d['ar']}</span><br>
-                <span style="font-size:11px; color:#9CA3AF">{d['desc']}</span><br>
-                <em style="font-size:12px; color:#374151">«{d['q']}»</em>
+        current = st.session_state.scores[d["key"]]
+
+        st.markdown(f"""
+        <div style="background:white; border:1.5px solid {''+d['color']+'44' if current>0 else '#E5E7EB'};
+                    border-radius:12px; padding:16px 18px; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                <span style="background:{d['color']}18; color:{d['color']}; font-weight:800;
+                             font-size:12px; padding:2px 10px; border-radius:6px;">{d['key']}</span>
+                <span style="font-size:16px; font-weight:700; color:{d['color']}">{d['ar']}</span>
             </div>
-            """, unsafe_allow_html=True)
-        with col_btns:
-            current = st.session_state.scores[d["key"]]
-            labels = ["1\nضعيف", "2\nمقبول", "3\nجيد", "4\nمتقدم"]
-            bcols = st.columns(4)
-            for vi, (bc, lbl) in enumerate(zip(bcols, labels), 1):
-                with bc:
-                    is_active = current == vi
-                    btn_style = f"background:{d['color']}; border:2px solid {d['color']};" if is_active else ""
-                    if st.button(
-                        str(vi),
-                        key=f"btn_{d['key']}_{vi}",
-                        use_container_width=True,
-                        type="primary" if is_active else "secondary",
-                    ):
-                        st.session_state.scores[d["key"]] = vi
-                        st.rerun()
+            <div style="font-size:11px; color:#9CA3AF; margin-bottom:4px">{d['desc']}</div>
+            <em style="font-size:12px; color:#374151">«{d['q']}»</em>
+        </div>
+        """, unsafe_allow_html=True)
+
+        score_val = st.radio(
+            label=f"تقييم {d['ar']}",
+            options=[1, 2, 3, 4],
+            format_func=lambda v, d=d: {
+                1: "1 — ضعيف",
+                2: "2 — مقبول",
+                3: "3 — جيد",
+                4: "4 — متقدم ✦",
+            }[v],
+            index=current - 1 if current > 0 else 0,
+            horizontal=True,
+            key=f"radio_{d['key']}",
+            label_visibility="collapsed",
+        )
+        if score_val != current:
+            st.session_state.scores[d["key"]] = score_val
+            st.rerun()
 
         st.markdown("---")
 
