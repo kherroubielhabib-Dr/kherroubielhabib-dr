@@ -2309,5 +2309,5 @@ with tab2:
         </div>
         """, unsafe_allow_html=True)
     else:
-        last        = st.session_state["session_num_counter"] = num_ + 1
+        last        = st.session_state.sessions[-1]
  
