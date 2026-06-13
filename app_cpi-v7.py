@@ -1888,9 +1888,7 @@ with tab1:
     col_n, col_d = st.columns(2)
     with col_n:
         # اقترح رقم الجلسة التالي تلقائياً بناءً على قاعدة البيانات (مرة واحدة فقط)
-        if "session_num_input" not in st.session_state:
-        if "session_num_counter" not in st.session_state:
-
+        if "session_num_input" not in st.session_state and "session_num_counter" not in st.session_state:
             auto_num = 1
             if team_name_input:
                 try:
@@ -1899,10 +1897,10 @@ with tab1:
                     auto_num = len(_existing) + 1
                 except Exception:
                     pass
-            st.session_state.session_num_input = auto_num
+            st.session_state["session_num_counter"] = auto_num
         session_num_input = st.number_input(
             {"ar":"رقم الجلسة","en":"Session #","fr":"N° séance"}[lang],
-            min_value=1, step=1, key="session_num_input",
+            min_value=1, step=1, value=st.session_state["session_num_counter"],
         )
     with col_d:
         session_date_input = st.date_input(
