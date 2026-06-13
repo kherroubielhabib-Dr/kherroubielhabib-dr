@@ -1890,7 +1890,7 @@ with tab1:
         # اقترح رقم الجلسة التالي تلقائياً بناءً على قاعدة البيانات (مرة واحدة فقط)
         if "session_num_input" not in st.session_state:
         if "session_num_counter" not in st.session_state:
-    st.session_state["session_num_counter"] = 1
+
             auto_num = 1
             if team_name_input:
                 try:
