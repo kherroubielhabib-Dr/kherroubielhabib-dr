@@ -1,4 +1,4 @@
-# ═══════════════════════════════════════════════════════════════════
+ه‍# ═══════════════════════════════════════════════════════════════════
 #  مؤشر التلاقح المعرفي — CPI Dashboard  (ثلاثي اللغات)
 #  Cross-Pollination Index · Indice de Pollinisation Croisée
 #  د. الحبيب خروبي · ESU-001
@@ -1815,7 +1815,7 @@ if "fac_msgs"  not in st.session_state: st.session_state.fac_msgs  = []
 if "fac_mode"  not in st.session_state: st.session_state.fac_mode  = "transcript"
 if "api_key"   not in st.session_state: st.session_state.api_key   = ""
 if "signatories" not in st.session_state: st.session_state.signatories = []
-
+if "session_num_counter" not in st.session_state: st.session_state["session_num_counter"] = 1
 lang = st.session_state.lang
 inject_css(lang)
 
@@ -1889,6 +1889,8 @@ with tab1:
     with col_n:
         # اقترح رقم الجلسة التالي تلقائياً بناءً على قاعدة البيانات (مرة واحدة فقط)
         if "session_num_input" not in st.session_state:
+        if "session_num_counter" not in st.session_state:
+    st.session_state["session_num_counter"] = 1
             auto_num = 1
             if team_name_input:
                 try:
@@ -2026,7 +2028,7 @@ with tab1:
                 except Exception as e:
                     st.warning(f"تحذير قاعدة البيانات: {e}")
                 st.session_state.scores = {k: 0 for k in DIM_KEYS}
-                st.session_state.session_num_input = num_ + 1
+                st.session_state["session_num_counter"] = num_ + 1
                 st.success(f"✓ CPI: {cpi_now}% — {level['title']}")
                 st.rerun()
         else:
@@ -2309,5 +2311,5 @@ with tab2:
         </div>
         """, unsafe_allow_html=True)
     else:
-        last        = st.session_state.sessions[-1]
+        last        = st.session_state["session_num_counter"] = num_ + 1
  
