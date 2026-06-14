@@ -2293,7 +2293,7 @@ with tab1:
                 ]
                 st.session_state.pmp_next_uid = 2
                 st.session_state.pmp_stats = None
-                st.session_state.session_num_input = num_ + 1
+                st.session_state["session_num_counter"] = num_ + 1
                 st.success(f"✓ {t('pmp_collective_cpi')}: {collective_cpi}% — CAI: {cai}% — {level['title']}")
                 st.rerun()
 
